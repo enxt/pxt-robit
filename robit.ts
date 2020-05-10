@@ -186,26 +186,26 @@ namespace robit {
         if (index == 1) {
             if (dir) {
                 setPwm(0, STP_CHA_L, STP_CHA_H)
-                setPwm(3, STP_CHB_L, STP_CHB_H)
+                setPwm(2, STP_CHB_L, STP_CHB_H)
                 setPwm(1, STP_CHC_L, STP_CHC_H)
-                setPwm(2, STP_CHD_L, STP_CHD_H)
+                setPwm(3, STP_CHD_L, STP_CHD_H)
             } else {
-                setPwm(2, STP_CHA_L, STP_CHA_H)
+                setPwm(3, STP_CHA_L, STP_CHA_H)
                 setPwm(1, STP_CHB_L, STP_CHB_H)
-                setPwm(3, STP_CHC_L, STP_CHC_H)
+                setPwm(2, STP_CHC_L, STP_CHC_H)
                 setPwm(0, STP_CHD_L, STP_CHD_H)
             }
         }
         else {
             if (dir) {
                 setPwm(4, STP_CHA_L, STP_CHA_H)
-                setPwm(7, STP_CHB_L, STP_CHB_H)
+                setPwm(6, STP_CHB_L, STP_CHB_H)
                 setPwm(5, STP_CHC_L, STP_CHC_H)
-                setPwm(6, STP_CHD_L, STP_CHD_H)
+                setPwm(7, STP_CHD_L, STP_CHD_H)
             } else {
-                setPwm(6, STP_CHA_L, STP_CHA_H)
+                setPwm(7, STP_CHA_L, STP_CHA_H)
                 setPwm(5, STP_CHB_L, STP_CHB_H)
-                setPwm(7, STP_CHC_L, STP_CHC_H)
+                setPwm(6, STP_CHC_L, STP_CHC_H)
                 setPwm(4, STP_CHD_L, STP_CHD_H)
             }
         }
@@ -268,6 +268,80 @@ namespace robit {
         let degree = turn
         StepperDegree(index, degree)
     }
+
+
+
+        //两路步进电机	
+    //% blockId=robit_stepper_dual block="Dual Stepper(Degree) |M1 %degree1| M2 %degree2"	
+    //% weight=89	
+    //% advanced=true	
+    export function StepperDual(degree1: number, degree2: number): void {	
+        if (!initialized) {	
+            initPCA9685()	
+        }	
+        setStepper(1, degree1 > 0);	
+        setStepper(2, degree2 > 0);	
+        degree1 = Math.abs(degree1);	
+        degree2 = Math.abs(degree2);	
+        basic.pause(10240 * Math.min(degree1, degree2) / 360);	
+        if (degree1 > degree2) {	
+            stopMotor(3); stopMotor(4);	
+            basic.pause(10240 * (degree1 - degree2) / 360);	
+        } else {	
+            stopMotor(1); stopMotor(2);	
+            basic.pause(10240 * (degree2 - degree1) / 360);	
+        }	
+
+        MotorStopAll()	
+    }	
+
+
+    //双步进前进距离	
+    /**	
+	 * Stepper Car move forward	
+	 * @param distance Distance to move in cm; eg: 10, 20	
+	 * @param diameter diameter of wheel in mm; eg: 48	
+	*/	
+    //% blockId=robit_stpcar_move block="Car Forward|Diameter(cm) %distance|Wheel Diameter(mm) %diameter"	
+    //% weight=88	
+    //% advanced=true	
+    export function StpCarMove(distance: number, diameter: number): void {	
+        if (!initialized) {	
+            initPCA9685()	
+        }	
+        let delay = 10240 * 10 * distance / 3 / diameter; // use 3 instead of pi	
+        setStepper(1, delay > 0);	
+        setStepper(2, delay > 0);	
+        delay = Math.abs(delay);	
+        basic.pause(delay);	
+        MotorStopAll()	
+    }	
+
+
+    //双步进转向角度	
+    /**	
+	 * Stepper Car turn by degree	
+	 * @param turn Degree to turn; eg: 90, 180, 360	
+	 * @param diameter diameter of wheel in mm; eg: 48	
+	 * @param track track width of car; eg: 125	
+	*/	
+    //% blockId=robit_stpcar_turn block="Car Turn|Degree %turn|Wheel Diameter(mm) %diameter|Track(mm) %track"	
+    //% weight=87	
+    //% blockGap=50	
+    //% advanced=true	
+    export function StpCarTurn(turn: number, diameter: number, track: number): void {	
+        if (!initialized) {	
+            initPCA9685()	
+        }	
+        let delay = 10240 * turn * track / 360 / diameter;	
+        setStepper(1, delay < 0);	
+        setStepper(2, delay > 0);	
+        delay = Math.abs(delay);	
+        basic.pause(delay);	
+        MotorStopAll()	
+    }	
+
+
 
 
     //单个电机速度
