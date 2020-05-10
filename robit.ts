@@ -311,11 +311,11 @@ namespace robit {
         }	
         let delay = 10240 * 10 * distance / 3 / diameter // use 3 instead of pi
         if(distance > 0) {
-            setStepper(1, delay > 0)
-            setStepper(2, delay < 0)
+            setStepper(1, distance > 0)
+            setStepper(2, distance < 0)
         } else {
-            setStepper(1, delay < 0)
-            setStepper(2, delay > 0)
+            setStepper(1, distance < 0)
+            setStepper(2, distance > 0)
         }
         delay = Math.abs(delay)
         basic.pause(delay)
