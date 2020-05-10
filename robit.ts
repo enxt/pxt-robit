@@ -271,7 +271,7 @@ namespace robit {
 
 
 
-        //两路步进电机	
+    // 两路步进电机	
     //% blockId=robit_stepper_dual block="Dual Stepper(Degree) |M1 %degree1| M2 %degree2"	
     //% weight=89	
     //% advanced=true	
@@ -293,14 +293,14 @@ namespace robit {
         }	
 
         MotorStopAll()	
-    }	
+    }
 
 
     //双步进前进距离	
     /**	
 	 * Stepper Car move forward	
 	 * @param distance Distance to move in cm; eg: 10, 20	
-	 * @param diameter diameter of wheel in mm; eg: 48	
+	 * @param diameter diameter of wheel in mm; eg: 63	
 	*/	
     //% blockId=robit_stpcar_move block="Car Forward|Diameter(cm) %distance|Wheel Diameter(mm) %diameter"	
     //% weight=88	
@@ -309,13 +309,18 @@ namespace robit {
         if (!initialized) {	
             initPCA9685()	
         }	
-        let delay = 10240 * 10 * distance / 3 / diameter; // use 3 instead of pi	
-        setStepper(1, delay > 0);	
-        setStepper(2, delay > 0);	
-        delay = Math.abs(delay);	
-        basic.pause(delay);	
+        let delay = 10240 * 10 * distance / 3 / diameter // use 3 instead of pi
+        if(distance > 0) {
+            setStepper(1, delay > 0)
+            setStepper(2, delay < 0)
+        } else {
+            setStepper(1, delay < 0)
+            setStepper(2, delay > 0)
+        }
+        delay = Math.abs(delay)
+        basic.pause(delay)
         MotorStopAll()	
-    }	
+    }
 
 
     //双步进转向角度	
@@ -333,13 +338,19 @@ namespace robit {
         if (!initialized) {	
             initPCA9685()	
         }	
-        let delay = 10240 * turn * track / 360 / diameter;	
-        setStepper(1, delay < 0);	
-        setStepper(2, delay > 0);	
-        delay = Math.abs(delay);	
-        basic.pause(delay);	
+        // let delay = 10240 * turn * track / 360 / diameter
+        let delay = 10240 * turn / 360 / diameter
+        if(turn > 0) {
+            setStepper(1, delay > 0)
+            setStepper(2, delay > 0)
+        } else {
+            setStepper(1, delay < 0)
+            setStepper(2, delay < 0)
+        }
+        delay = Math.abs(delay)
+        basic.pause(delay)
         MotorStopAll()	
-    }	
+    }
 
 
 
