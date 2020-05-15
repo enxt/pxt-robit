@@ -37,6 +37,10 @@ namespace robit {
     const STP_CHD_L = 3071
     const STP_CHD_H = 1023
 
+    const FREQ = 100
+
+    const STEPPER_MICROSTEPS = 5120 // 10240
+
     export enum Servos {
         S0 = 0x01,
         S1 = 0x02,
@@ -137,7 +141,7 @@ namespace robit {
 
     function initPCA9685(): void {
         i2cwrite(PCA9685_ADDRESS, MODE1, 0x00)
-        setFreq(50); //1s / 20ms
+        setFreq(FREQ); //1s / 20ms
         for (let idx = 0; idx < 16; idx++) {
             setPwm(idx, 0, 0);
         }
@@ -254,7 +258,8 @@ namespace robit {
         }
         setStepper(index, degree > 0)
         degree = Math.abs(degree)
-        basic.pause(10240 * degree / 360)
+        // basic.pause(10240 * degree / 360)
+        basic.pause(STEPPER_MICROSTEPS * degree / 360)
         MotorStopAll()
     }
 
@@ -275,24 +280,29 @@ namespace robit {
     //% blockId=robit_stepper_dual block="Dual Stepper(Degree) |M1 %degree1| M2 %degree2"	
     //% weight=89	
     //% advanced=true	
-    export function StepperDual(degree1: number, degree2: number): void {	
-        if (!initialized) {	
-            initPCA9685()	
-        }	
-        setStepper(1, degree1 > 0);	
-        setStepper(2, degree2 > 0);	
-        degree1 = Math.abs(degree1);	
-        degree2 = Math.abs(degree2);	
-        basic.pause(10240 * Math.min(degree1, degree2) / 360);	
-        if (degree1 > degree2) {	
-            stopMotor(3); stopMotor(4);	
-            basic.pause(10240 * (degree1 - degree2) / 360);	
-        } else {	
-            stopMotor(1); stopMotor(2);	
-            basic.pause(10240 * (degree2 - degree1) / 360);	
-        }	
+    export function StepperDual(degree1: number, degree2: number): void {
+        if (!initialized) {
+            initPCA9685()
+        }
+        setStepper(1, degree1 > 0);
+        setStepper(2, -degree2 > 0);
+        degree1 = Math.abs(degree1);
+        degree2 = Math.abs(degree2);
+        basic.pause(STEPPER_MICROSTEPS * Math.min(degree1, degree2) / 360);
+        if (degree1 == degree2) {
+            stopMotor(1)
+            stopMotor(2)
+            stopMotor(3)
+            stopMotor(4)
+        } else if (degree1 > degree2) {
+            stopMotor(3); stopMotor(4);
+            basic.pause(STEPPER_MICROSTEPS * (degree1 - degree2) / 360);
+        } else {
+            stopMotor(1); stopMotor(2);
+            basic.pause(STEPPER_MICROSTEPS * (degree2 - degree1) / 360);
+        }
 
-        MotorStopAll()	
+        MotorStopAll()
     }
 
 
@@ -301,25 +311,16 @@ namespace robit {
 	 * Stepper Car move forward	
 	 * @param distance Distance to move in cm; eg: 10, 20	
 	 * @param diameter diameter of wheel in mm; eg: 63	
-	*/	
-    //% blockId=robit_stpcar_move block="Car Forward|Diameter(cm) %distance|Wheel Diameter(mm) %diameter"	
+	*/
+    //% blockId=robit_stpcar_move block="Car Forward|Distance(cm) %distance|Wheel Diameter(mm) %diameter"	
     //% weight=88	
     //% advanced=true	
-    export function StpCarMove(distance: number, diameter: number): void {	
-        if (!initialized) {	
-            initPCA9685()	
-        }	
-        let delay = 10240 * 10 * distance / 3 / diameter // use 3 instead of pi
-        if(distance > 0) {
-            setStepper(1, distance > 0)
-            setStepper(2, distance < 0)
-        } else {
-            setStepper(1, distance < 0)
-            setStepper(2, distance > 0)
+    export function StpCarMove(distance: number, diameter: number): void {
+        if (!initialized) {
+            initPCA9685()
         }
-        delay = Math.abs(delay)
-        basic.pause(delay)
-        MotorStopAll()	
+        let degrees = (10 * distance / 3 / diameter) * 360
+        StepperDual(degrees, degrees)
     }
 
 
@@ -327,29 +328,19 @@ namespace robit {
     /**	
 	 * Stepper Car turn by degree	
 	 * @param turn Degree to turn; eg: 90, 180, 360	
-	 * @param diameter diameter of wheel in mm; eg: 48	
-	 * @param track track width of car; eg: 125	
-	*/	
+	 * @param diameter diameter of wheel in mm; eg: 63	
+	 * @param track track width of car; eg: 115	
+	*/
     //% blockId=robit_stpcar_turn block="Car Turn|Degree %turn|Wheel Diameter(mm) %diameter|Track(mm) %track"	
     //% weight=87	
     //% blockGap=50	
     //% advanced=true	
-    export function StpCarTurn(turn: number, diameter: number, track: number): void {	
-        if (!initialized) {	
-            initPCA9685()	
-        }	
-        // let delay = 10240 * turn * track / 360 / diameter
-        let delay = 10240 * turn / 360 / diameter
-        if(turn > 0) {
-            setStepper(1, delay > 0)
-            setStepper(2, delay > 0)
-        } else {
-            setStepper(1, delay < 0)
-            setStepper(2, delay < 0)
+    export function StpCarTurn(turn: number, diameter: number, track: number): void {
+        if (!initialized) {
+            initPCA9685()
         }
-        delay = Math.abs(delay)
-        basic.pause(delay)
-        MotorStopAll()	
+        let degrees = turn * track / diameter
+        StepperDual(degrees, -degrees)
     }
 
 
@@ -458,8 +449,8 @@ namespace robit {
         let d = pins.pulseIn(pin, PulseValue.High, 23000);  // 8 / 340 = 
         return d * 5 / 3 / 58;
     }
-	
-	//makeblock_touch_sensor
+
+    //makeblock_touch_sensor
     //% blockId=Touch_sensor_is_touched block="Touch sensor is touched on|pin %pin"
     //% advanced=true
     //% weight=10
@@ -483,7 +474,7 @@ namespace robit {
             return false;
         }
     }
-	
+
     //makeblock_led
     //% blockId=makeblock_led block="connect LED to|pin %pin|turn %Ledsta"
     //% weight=10
@@ -514,8 +505,8 @@ namespace robit {
     //% speed.min=-100 speed.max=100
     //% advanced=true
     export function set_makeblock_motor(jpin: Jpin_motor, speed: number): void {
-        let pin1 
-        let pin2 
+        let pin1
+        let pin2
         switch (jpin) {
             case 1: pin1 = AnalogPin.P13
                 pin2 = AnalogPin.P14
@@ -532,9 +523,9 @@ namespace robit {
             speed = 1000
         }
         if (speed >= 0) {
-           pins.analogWritePin(pin1, 0)
-           pins.analogSetPeriod(pin2, 1000)
-           pins.analogWritePin(pin2, speed)
+            pins.analogWritePin(pin1, 0)
+            pins.analogSetPeriod(pin2, 1000)
+            pins.analogWritePin(pin2, speed)
         }
         if (speed < 0) {
             speed = speed * -1
@@ -604,4 +595,3 @@ namespace robit {
 
 
 }
-
